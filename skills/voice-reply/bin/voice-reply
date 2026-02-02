@@ -1,0 +1,97 @@
+#!/bin/bash
+# voice-reply - Local TTS using Piper/sherpa-onnx
+# Generates OGG Opus audio for Telegram voice notes
+#
+# Usage: voice-reply "text" [de|en]
+#
+# Environment variables:
+#   SHERPA_ONNX_DIR   - Path to sherpa-onnx installation (default: /opt/sherpa-onnx)
+#   PIPER_VOICES_DIR  - Path to Piper voice models (default: /opt/piper-voices)
+
+set -e
+
+TEXT="$1"
+LANG="${2:-auto}"
+
+if [ -z "$TEXT" ]; then
+    echo "Usage: voice-reply \"text\" [de|en]"
+    echo ""
+    echo "Options:"
+    echo "  text      Text to convert to speech"
+    echo "  language  'de' for German, 'en' for English (default: auto-detect)"
+    exit 1
+fi
+
+# Paths (use environment variables or defaults)
+RUNTIME_DIR="${SHERPA_ONNX_DIR:-/opt/sherpa-onnx}"
+VOICES_DIR="${PIPER_VOICES_DIR:-/opt/piper-voices}"
+OUTPUT_DIR="/tmp/voice-reply-$$"
+mkdir -p "$OUTPUT_DIR"
+
+# Auto-detect language if not specified
+if [ "$LANG" = "auto" ]; then
+    # Detect German from umlauts and common words
+    if echo "$TEXT" | grep -qiE '(ä|ö|ü|ß|ich|und|der|die|das|ist|ein|nicht|haben|werden|sein|bitte|danke|guten|hallo|kannst|möchte|würde)'; then
+        LANG="de"
+    else
+        LANG="en"
+    fi
+fi
+
+# Select voice model based on language
+if [ "$LANG" = "de" ]; then
+    MODEL_DIR="$VOICES_DIR/vits-piper-de_DE-thorsten-medium"
+    MODEL_FILE="de_DE-thorsten-medium.onnx"
+else
+    MODEL_DIR="$VOICES_DIR/vits-piper-en_US-ryan-high"
+    MODEL_FILE="en_US-ryan-high.onnx"
+fi
+
+# Verify model exists
+if [ ! -d "$MODEL_DIR" ]; then
+    echo "Error: Voice model not found at $MODEL_DIR"
+    echo "Please download the model first. See SKILL.md for instructions."
+    exit 1
+fi
+
+# File paths
+WAV_FILE="$OUTPUT_DIR/output.wav"
+OGG_FILE="/tmp/voice-reply-output.ogg"
+TTS_BIN="$RUNTIME_DIR/bin/sherpa-onnx-offline-tts"
+
+# Verify TTS binary exists
+if [ ! -x "$TTS_BIN" ]; then
+    echo "Error: TTS binary not found at $TTS_BIN"
+    echo "Please install sherpa-onnx first. See SKILL.md for instructions."
+    exit 1
+fi
+
+# Run TTS (suppress progress output)
+"$TTS_BIN" \
+    --vits-model="$MODEL_DIR/$MODEL_FILE" \
+    --vits-tokens="$MODEL_DIR/tokens.txt" \
+    --vits-data-dir="$MODEL_DIR/espeak-ng-data" \
+    --output-filename="$WAV_FILE" \
+    "$TEXT" >/dev/null 2>&1
+
+if [ ! -f "$WAV_FILE" ]; then
+    echo "Error: Failed to generate audio"
+    rm -rf "$OUTPUT_DIR"
+    exit 1
+fi
+
+# Convert to OGG Opus for Telegram voice notes
+# Opus at 48kHz is required for Telegram voice bubbles
+ffmpeg -y -i "$WAV_FILE" -c:a libopus -b:a 64k -ar 48000 "$OGG_FILE" 2>/dev/null
+
+# Cleanup temp directory
+rm -rf "$OUTPUT_DIR"
+
+# Output for OpenClaw/Telegram
+if [ -f "$OGG_FILE" ]; then
+    echo "[[audio_as_voice]]"
+    echo "MEDIA:$OGG_FILE"
+else
+    echo "Error: Failed to convert audio to OGG format"
+    exit 1
+fi

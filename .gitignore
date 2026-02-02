@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp files
+*.tmp
+*.log
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Build artifacts
+dist/
+build/
+*.skill
