@@ -6,11 +6,17 @@ A collection of open-source skills for [OpenClaw](https://openclaw.ai) - the loc
 
 ## Available Skills
 
-| Skill | Description | Status |
-|-------|-------------|--------|
-| [voice-reply](skills/voice-reply/) | Local text-to-speech using Piper voices | ✅ Ready |
+| Skill | Description | ClawHub | Status |
+|-------|-------------|---------|--------|
+| [voice-reply](skills/voice-reply/) | Local text-to-speech using Piper voices | `npx clawhub install voice-reply` | ✅ Ready |
 
 ## Installation
+
+### Via ClawHub (Recommended)
+
+```bash
+npx clawhub install voice-reply
+```
 
 ### Manual Installation
 
@@ -22,12 +28,6 @@ git clone https://github.com/stolot0mt0m/openclaw-skills.git
 
 # Copy a skill to OpenClaw
 cp -r openclaw-skills/skills/voice-reply ~/.openclaw/skills/
-```
-
-### Via ClawHub (when available)
-
-```bash
-npx clawhub install stolot0mt0m/voice-reply
 ```
 
 ## Requirements
