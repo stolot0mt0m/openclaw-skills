@@ -24,3 +24,5 @@ __pycache__/
 dist/
 build/
 *.skill
+.pipeline-events/
+.repomap.tags.cache.v1/
